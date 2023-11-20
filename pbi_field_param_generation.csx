@@ -1,61 +1,56 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
-using System.Globalization;
 using System.Text.RegularExpressions;
 // ------------------------------------------------- TÄSTÄ YLÖSPÄIN EI TARVITSE TEHDÄ MITÄÄN ------------------------------------------------
 
-
-// Mittarit sisältävä taulu:
-string measureTable = "Mittarit";
 // Nimeä uusi kenttäparametritaulu
-string fieldParameterTableName = "P_Mittarit_test";
-
-// VALITSE MITTARIT TOM Explorerista, tehdään kenttäparametritauluun valintajärjestyksessä ----->
+string name = "P_Dimensiot";
+// Jos et halua oletusryhmittelyä, laita joku oma alla olevaan muuttujaan
+string group = "";
 
 // ------------------------------------------------- TÄSTÄ ALASPÄIN EI TARVITSE TEHDÄ MITÄÄN ------------------------------------------------
 
-// Tehdään valituista mittareista
-var selectedMeasures = Selected.Measures.Select(measure => measure).ToList();
-string fpt = "";
-int measureListLen= selectedMeasures.Count();
-var counter = 1;
+if(Selected.Columns.Count == 0 && Selected.Measures.Count == 0) throw new Exception("No columns or measures selected!");
 
-// Tuottaa mittariosuuden
-foreach( var m in selectedMeasures )
-    {
-       string[] hierarchies = m.DisplayFolder.Split("\\");
-       string measureGrouping = hierarchies[hierarchies.Length - 1];
-       if( counter != measureListLen )
-        {
-            fpt = fpt + "(\"" + ApplyDefaultTranslation(m) + "\", NAMEOF(\'" + measureTable + "\'[" + m.Name + "]), " + counter + ", \"" + measureGrouping + "\"),\n";
-        }
-        else
-        {
-            fpt = fpt + "(\"" + ApplyDefaultTranslation(m) + "\", NAMEOF(\'" + measureTable + "\'[" + m.Name + "]), " + counter + ", \"" + measureGrouping + "\")";
-        }
-        counter = counter + 1;
-       
-    };
+// Muodostaa DAX -koodin valituista
+var objects = Selected.Columns.Any() ? Selected.Columns.Cast<ITabularTableObject>() : Selected.Measures;
+var dax = "{\n    " + string.Join(",\n    ", objects.Select((c,i) => string.Format("(\"{0}\", NAMEOF('{1}'[{2}]), {3}, {4})", ApplyDefaultTranslation(c.Name), c.Table.Name, c.Name, i, group == "" ? "\""+c.Table.Name+"\"" : "\""+group+"\""))) + "\n}";
 
-// Tuottaa kenttäparametritaulun ja paketoi mittarit siihen
-var fieldParameterTable = Model.AddCalculatedTable( fieldParameterTableName, 
-    "{\n" + 
-    fpt
-    + "\n}"
-);
+// Tehdään taulu
+var table = Model.AddCalculatedTable(name, dax);
+
+// Tehdään sarakkeet
+var te2 = table.Columns.Count == 0;
+var nameColumn = te2 ? table.AddCalculatedTableColumn(name, "[Value1]") : table.Columns["Value1"] as CalculatedTableColumn;
+var fieldColumn = te2 ? table.AddCalculatedTableColumn(name + " Fields", "[Value2]") : table.Columns["Value2"] as CalculatedTableColumn;
+var orderColumn = te2 ? table.AddCalculatedTableColumn(name + " Order", "[Value3]") : table.Columns["Value3"] as CalculatedTableColumn;
+var groupColumn = te2 ? table.AddCalculatedTableColumn(name + " Group", "[Value4]") : table.Columns["Value4"] as CalculatedTableColumn;
+
+// Nimetään sarakkeet uudelleen
+nameColumn.IsNameInferred = false;
+nameColumn.Name = name;
+fieldColumn.IsNameInferred = false;
+fieldColumn.Name = name + " Fields";
+orderColumn.IsNameInferred = false;
+orderColumn.Name = name + " Order";
+groupColumn.IsNameInferred = false;
+groupColumn.Name = name + " Group";
+
+// Parametritaulujen ominaisuudet
+nameColumn.SortByColumn = orderColumn;
+nameColumn.GroupByColumns.Add(fieldColumn);
+fieldColumn.SortByColumn = orderColumn;
+fieldColumn.SetExtendedProperty("ParameterMetadata", "{\"version\":3,\"kind\":2}", ExtendedPropertyType.Json);
+fieldColumn.IsHidden = true;
+orderColumn.IsHidden = true;
 
 
 // Käännösfunktio
-string ApplyDefaultTranslation(ITranslatableObject obj)
+string ApplyDefaultTranslation(string technicalName)
 {
     if(true)
     {
         // Etsii mittarinimen lopusta yy[y]-yy[y] tyyppistä kaavaa, jonka muuttaa (yy[y]/yy[y])
         string pattern = @"_(\w{2,3})-(\w{2,3}$)";        
 
-        string technicalName = obj.Name;
         // Sulutetaan loppuliitteitä
         technicalName = Regex.Replace(technicalName, pattern, " ($1/$2)");
         // Plussat
