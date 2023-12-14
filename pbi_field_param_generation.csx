@@ -2,7 +2,7 @@ using System.Text.RegularExpressions;
 // ------------------------------------------------- TÄSTÄ YLÖSPÄIN EI TARVITSE TEHDÄ MITÄÄN ------------------------------------------------
 
 // Nimeä uusi kenttäparametritaulu
-string name = "P_Dimensiot";
+string name = "P_Upote_kortit";
 // Jos et halua oletusryhmittelyä, laita joku oma alla olevaan muuttujaan
 string group = "";
 
@@ -11,8 +11,20 @@ string group = "";
 if(Selected.Columns.Count == 0 && Selected.Measures.Count == 0) throw new Exception("No columns or measures selected!");
 
 // Muodostaa DAX -koodin valituista
-var objects = Selected.Columns.Any() ? Selected.Columns.Cast<ITabularTableObject>() : Selected.Measures;
-var dax = "{\n    " + string.Join(",\n    ", objects.Select((c,i) => string.Format("(\"{0}\", NAMEOF('{1}'[{2}]), {3}, {4})", ApplyDefaultTranslation(c.Name), c.Table.Name, c.Name, i, group == "" ? "\""+c.Table.Name+"\"" : "\""+group+"\""))) + "\n}";
+//var objects = Selected.Measures.Any() ? Selected.Measures : Selected.Columns.Cast<ITabularTableObject>() ;
+string flag = Selected.Measures.Any() ? "Mittarit" : "Sarakkeet" ;
+var dax = "";
+if(flag == "Mittarit")
+{
+    var objects = Selected.Measures;
+    dax = "{\n    " + string.Join(",\n    ", objects.Select((c,i) => string.Format("(\"{0}\", NAMEOF('{1}'[{2}]), {3}, {4})", ApplyDefaultTranslation(c.Name), c.Table.Name, c.Name, i, group == "" ? "\""+  c.DisplayFolder.Split("\\").Last()+"\"" : "\""+group+"\""))) + "\n}";
+}
+else
+{
+    var objects = Selected.Columns.Cast<ITabularTableObject>();
+    dax = "{\n    " + string.Join(",\n    ", objects.Select((c,i) => string.Format("(\"{0}\", NAMEOF('{1}'[{2}]), {3}, {4})", ApplyDefaultTranslation(c.Name), c.Table.Name, c.Name, i, group == "" ? "\""+  c.Table.Name+"\"" : "\""+group+"\""))) + "\n}";
+}
+
 
 // Tehdään taulu
 var table = Model.AddCalculatedTable(name, dax);
