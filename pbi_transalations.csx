@@ -64,7 +64,7 @@ void ApplyDefaultTranslation(ITranslatableObject obj, Culture culture)
         aoReplaced = aoReplaced.Replace("Ika", "Ikä");
         aoReplaced = aoReplaced.Replace("aytetty", "äytetty");      // Käytetty/käytetty
         aoReplaced = aoReplaced.Replace("asittely", "äsittely");    // Käsittely
-        aoReplaced = aoReplaced.Replace("aytto", "äyttö");
+        aoReplaced = aoReplaced.Replace("aytto", "äyttö");          // Käyttö
         aoReplaced = aoReplaced.Replace("Pyha", "Pyhä");
         aoReplaced = aoReplaced.Replace("Paiva", "Päivä");
         aoReplaced = aoReplaced.Replace("paiva", "päivä");
@@ -76,11 +76,11 @@ void ApplyDefaultTranslation(ITranslatableObject obj, Culture culture)
         // Omat muutokset
         if (changeFrom1 != "")
         {
-            translatedName = aoReplaced.Replace(changeFrom1, changeTo1);
+            translatedName = translatedName.Replace(changeFrom1, changeTo1);
         }
         if (changeFrom2 != "")
         {
-            translatedName = aoReplaced.Replace(changeFrom2, changeTo2);
+            translatedName = translatedName.Replace(changeFrom2, changeTo2);
         }
         
         obj.TranslatedNames[culture] = translatedName;

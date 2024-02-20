@@ -62,7 +62,7 @@ foreach(var table in _org_tables)
         }
         else
         {
-        Model.Tables[table.Name].Columns[c.Name].DisplayFolder = groupName;
+        Model.Tables[table.Name].Columns[c.Name].DisplayFolder = "Lisävalinnat\\" + groupName;
         }
         
     }
@@ -70,35 +70,36 @@ foreach(var table in _org_tables)
 
 
 // Kansioidaan valittujen taulujen sarakkeet taso* -kansioihin
-if(Selected.Tables.Count == 0) throw new Exception("No columns selected!");
-var selectedTables = Selected.Tables.ToList();
-// Etsii tasoja tällä reseptillä
-string tasoPattern = @"^.*?(_taso\d+)";
-
-// Käydään läpi valitut taulut
-foreach(var t in selectedTables)
+if(Selected.Tables.Count > 0) 
 {
-    // Listataan taulun sarakkeet
-    var tableCols = t.Columns.ToList();
-    string[] tableNameParts = t.Name.Split("_");
-    // Käydään läpi sarakkeet
-    foreach(var c in tableCols)
+    var selectedTables = Selected.Tables.ToList();
+    // Etsii tasoja tällä reseptillä
+    string tasoPattern = @"^.*?(_taso\d+)";
+
+    // Käydään läpi valitut taulut
+    foreach(var t in selectedTables)
     {
-        var colName = c.Name;
-        Match match = Regex.Match(colName, tasoPattern);
-        // Jos sarakenimi sisältää saman osuuden kuin taulunimi, eikä ole avain -> tehdään taso* -kansiot
-        if(colName.Contains(tableNameParts[1], StringComparison.OrdinalIgnoreCase) && c.Name.Contains("Dim") == false)
+        // Listataan taulun sarakkeet
+        var tableCols = t.Columns.ToList();
+        string[] tableNameParts = t.Name.Split("_");
+        // Käydään läpi sarakkeet
+        foreach(var c in tableCols)
         {
-            c.DisplayFolder = "Lisävalinnat\\" + tableNameParts[1] + match.Groups[1].Value;
-        }
-        // Loput kansioidaan "Muut" -kansioon, avaimia lukuunottamatta
-        else if(c.Name.Contains("Dim") == false)
-        {
-            c.DisplayFolder = "Lisävalinnat\\Muut";
+            var colName = c.Name;
+            Match match = Regex.Match(colName, tasoPattern);
+            // Jos sarakenimi sisältää saman osuuden kuin taulunimi, eikä ole avain -> tehdään taso* -kansiot
+            if(colName.Contains(tableNameParts[1], StringComparison.OrdinalIgnoreCase) && c.Name.Contains("Dim") == false)
+            {
+                c.DisplayFolder = "Lisävalinnat\\" + tableNameParts[1] + match.Groups[1].Value;
+            }
+            // Loput kansioidaan "Muut" -kansioon, avaimia lukuunottamatta
+            else if(c.Name.Contains("Dim") == false)
+            {
+                c.DisplayFolder = "Lisävalinnat\\Muut";
+            }
         }
     }
 }
-
 
 /*
     TÄSSÄ TEHDÄÄN HIERARKIA, MUTTA SIIHEN EI PYSTY LISÄTÄ TASOJA, JOTEN TURHA LISÄTÄ
